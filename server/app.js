@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { loggerMiddleware } = require('./middleware.js');
 const { pool } = require('./db.js');
+const jwt = require('jsonwebtoken');
 const app = express();
 const bcrypt = require('bcrypt');
 
@@ -57,8 +58,6 @@ app.post('/auth/register', async (req, res) => {
     return res.status(400).json({ error: 'email is busy' });
   }
 
-  const salt = await bcrypt.genSalt(10);
-
   bcrypt.hash(password + process.env.PEPPER_SECRET, 10, async (err, password_hash) => {
     const response = await pool.query(
       `INSERT INTO users (name, email, password_hash)
@@ -70,11 +69,44 @@ app.post('/auth/register', async (req, res) => {
   });
 });
 
-// app.post('/login', async (req, res) => {
-//   // 1 клиент присылает email password а сервер ищет пользователя по email
-//   // 2 сравниваем пароль с password_hash
-//   // 3 если совпало → создаём JWT
-// });
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const result = await pool.query(
+    `SELECT id, name, email, password_hash
+     FROM users
+     WHERE email = $1`,
+    [email]
+  );
+
+  if (!result.rows.length) {
+    return res.status(401).json({ message: 'incorrect login' });
+  }
+
+  const user = result.rows[0];
+
+  bcrypt.compare(password + process.env.PEPPER_SECRET, user.password_hash, (err, result) => {
+    if (result) {
+      const token = jwt.sign({ sub: user.id, email: user.email }, process.env.JWT_SECRET, {
+        expiresIn: '1h',
+      });
+
+      res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+      });
+    } else {
+      result.status(401).json({ message: 'incorrect password' });
+    }
+  });
+  // 1 клиент присылает email password а сервер ищет пользователя по email
+  // 2 сравниваем пароль с password_hash
+  // 3 если совпало → создаём JWT
+});
 
 app.listen(process.env.PORT, () => {
   console.log(`Example app listening on port ${process.env.PORT}`);
