@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { loggerMiddleware } = require('./middleware.js');
+const { loggerMiddleware, authMiddleware } = require('./middleware.js');
 const { pool } = require('./db.js');
 const jwt = require('jsonwebtoken');
 const app = express();
@@ -87,9 +87,21 @@ app.post('/auth/login', async (req, res) => {
         },
       });
     } else {
-      result.status(401).json({ message: 'incorrect password' });
+      res.status(401).json({ message: 'incorrect password' });
     }
   });
+});
+
+app.get('/me', authMiddleware, async (req, res) => {
+  const result = await pool.query('SELECT id, name, email, created_at FROM users WHERE id = $1', [
+    req.user.id,
+  ]);
+
+  if (result.rows.length === 0) {
+    return res.status(401).json({ message: 'user not found' });
+  }
+
+  res.json(result.rows[0]);
 });
 
 app.listen(process.env.PORT, () => {
