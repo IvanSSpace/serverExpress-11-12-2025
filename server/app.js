@@ -57,8 +57,6 @@ app.post('/auth/register', async (req, res) => {
       expiresIn: '1h',
     });
 
-    const [id, email, name] = response.rows[0];
-
     res.status(200).json({
       token,
       user: {
