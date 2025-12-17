@@ -104,6 +104,18 @@ app.get('/me', authMiddleware, async (req, res) => {
   res.json(result.rows[0]);
 });
 
+app.get('/private', authMiddleware, async (req, res) => {
+  const result = await pool.query('SELECT id, name, email, created_at FROM users WHERE id = $1', [
+    req.user.id,
+  ]);
+
+  if (result.rows.length === 0) {
+    return res.status(401).json({ message: 'user not found' });
+  }
+
+  res.json({ message: 'private content' });
+});
+
 app.listen(process.env.PORT, () => {
   console.log(`Example app listening on port ${process.env.PORT}`);
 });
