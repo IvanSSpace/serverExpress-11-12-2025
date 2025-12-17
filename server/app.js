@@ -52,7 +52,21 @@ app.post('/auth/register', async (req, res) => {
   RETURNING id, name, email, created_at;`,
       [name, email, password_hash]
     );
-    res.status(200).json({ message: response.rows[0] });
+
+    const token = jwt.sign({ sub: response.id, email: response.email }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    const [id, email, name] = response.rows[0];
+
+    res.status(200).json({
+      token,
+      user: {
+        id: response.rows[0].id,
+        email: response.rows[0].email,
+        name: response.rows[0].name,
+      },
+    });
   });
 });
 
