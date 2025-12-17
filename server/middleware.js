@@ -30,4 +30,12 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-export { loggerMiddleware, authMiddleware };
+const errorMiddleware = (err, req, res, next) => {
+  console.log(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'trouble on server',
+  });
+  next();
+};
+
+export { loggerMiddleware, authMiddleware, errorMiddleware };

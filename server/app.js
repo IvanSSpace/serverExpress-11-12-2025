@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { loggerMiddleware, authMiddleware } = require('./middleware.js');
+const { loggerMiddleware, authMiddleware, errorMiddleware } = require('./middleware.js');
 const { pool } = require('./db.js');
 const jwt = require('jsonwebtoken');
 const app = express();
@@ -115,6 +115,8 @@ app.get('/private', authMiddleware, async (req, res) => {
 
   res.json({ message: 'private content' });
 });
+
+app.use(errorMiddleware);
 
 app.listen(process.env.PORT, () => {
   console.log(`Example app listening on port ${process.env.PORT}`);
